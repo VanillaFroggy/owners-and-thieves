@@ -3,39 +3,77 @@ package com.internship;
 import com.internship.model.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class Main {
+    public static final int OWNERS_COUNT = 2;
+    public static final int THIEVES_COUNT = 2;
+    public static final int MAX_ITEM_VALUE = 100_000;
+    public static final int MAX_ITEM_WEIGHT = 10;
+    public static final int MAX_ITEMS_COUNT = 10;
+    public static final int MAX_BACKPACK_WEIGHT = 15;
+
     public static void main(String[] args) {
         Apartment apartment = new Apartment();
 
-        List<Item> items1 = List.of(
-                new Item(2, BigDecimal.valueOf(10)),
-                new Item(3, BigDecimal.valueOf(20)),
-                new Item(1, BigDecimal.valueOf(5))
-        );
-        List<Item> items2 = List.of(
-                new Item(5, BigDecimal.valueOf(50)),
-                new Item(2, BigDecimal.valueOf(15))
-        );
+        List<Thread> owners = generateOwners(apartment, OWNERS_COUNT);
 
-        Thread owner1 = new Thread(new Owner(apartment, items1), "Owner1");
-        Thread owner2 = new Thread(new Owner(apartment, items2), "Owner2");
+        List<Thread> thieves = generateThieves(apartment, THIEVES_COUNT);
 
-        Thread thief1 = new Thread(new Thief(apartment, new Backpack(5)), "Thief1");
-        Thread thief2 = new Thread(new Thief(apartment, new Backpack(6)), "Thief2");
+        owners.forEach(owner -> {
+            owner.start();
+            try {
+                owner.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
-        owner1.start();
-        owner2.start();
+        thieves.forEach(Thread::start);
+    }
 
-        try {
-            owner1.join();
-            owner2.join();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+    private static List<Thread> generateOwners(Apartment apartment, int count) {
+        List<List<Item>> itemLists = generateItems(count);
+        List<Thread> owners = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            owners.add(new Thread(
+                    new Owner(apartment, itemLists.get(i)),
+                    "Owner" + (i + 1))
+            );
         }
+        return owners;
+    }
 
-        thief1.start();
-        thief2.start();
+    private static List<List<Item>> generateItems(int count) {
+        List<List<Item>> itemLists = new ArrayList<>(count);
+        Random random = new Random();
+        for (int i = 0; i < count; i++) {
+            int itemsCount = random.nextInt(1, MAX_ITEMS_COUNT);
+            itemLists.add(new ArrayList<>(itemsCount));
+            for (int j = 0; j < itemsCount; j++) {
+                itemLists.get(i).add(new Item(
+                        random.nextInt(1, MAX_ITEM_WEIGHT),
+                        BigDecimal.valueOf(random.nextInt(1, MAX_ITEM_VALUE))
+                ));
+            }
+        }
+        return itemLists;
+    }
+
+    private static List<Thread> generateThieves(Apartment apartment, int count) {
+        List<Thread> thieves = new ArrayList<>(count);
+        Random random = new Random();
+        for (int i = 0; i < count; i++) {
+            thieves.add(new Thread(
+                    new Thief(
+                            apartment,
+                            new Backpack(random.nextInt(1, MAX_BACKPACK_WEIGHT))
+                    ),
+                    "Thief" + (i + 1)
+            ));
+        }
+        return thieves;
     }
 }
