@@ -1,14 +1,62 @@
 package com.internship.model;
 
-import java.util.Collections;
-import java.util.List;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Apartment {
+    private final List<Item> items = new ArrayList<>();
+    private final Lock lock = new ReentrantLock();
+    private final Condition canSteal = lock.newCondition();
+    private boolean ownerInside = false;
 
     public void addItem(Item item) {
+        lock.lock();
+        try {
+            ownerInside = true;
+            items.add(item);
+            System.out.println(Thread.currentThread().getName() + " added " + item);
+        } finally {
+            ownerInside = false;
+            canSteal.signalAll();
+            lock.unlock();
+        }
     }
 
     public List<Item> stealItems(int maxWeight) {
-        return Collections.emptyList();
+        lock.lock();
+        try {
+            while (ownerInside) {
+                canSteal.await();
+            }
+            if (items.isEmpty()) return Collections.emptyList();
+            items.sort(Comparator.comparing(item ->
+                    (item.value()
+                            .divide(
+                                    BigDecimal.valueOf(item.weight()),
+                                    RoundingMode.FLOOR
+                            )
+                    ).negate()
+            ));
+            List<Item> stolen = new ArrayList<>();
+            int currentWeight = 0;
+            for (Iterator<Item> iterator = items.iterator(); iterator.hasNext();) {
+                Item item = iterator.next();
+                if (currentWeight + item.weight() <= maxWeight) {
+                    stolen.add(item);
+                    currentWeight += item.weight();
+                    iterator.remove();
+                }
+            }
+            System.out.println(Thread.currentThread().getName() + " stole " + stolen);
+            return stolen;
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            lock.unlock();
+        }
     }
 }
