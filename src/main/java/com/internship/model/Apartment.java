@@ -8,6 +8,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Apartment {
+    private static final String NO_ITEMS_TO_STEAL_PHRASE = "Here is nothing to steal for ";
     private final List<Item> items = new ArrayList<>();
     private final Lock lock = new ReentrantLock();
     private final Condition canSteal = lock.newCondition();
@@ -32,7 +33,10 @@ public class Apartment {
             while (ownerInside) {
                 canSteal.await();
             }
-            if (items.isEmpty()) return Collections.emptyList();
+            if (items.isEmpty()) {
+                System.out.println(NO_ITEMS_TO_STEAL_PHRASE + Thread.currentThread().getName());
+                return Collections.emptyList();
+            }
             items.sort(Comparator.comparing(item ->
                     (item.value()
                             .divide(
@@ -51,7 +55,11 @@ public class Apartment {
                     iterator.remove();
                 }
             }
-            System.out.println(Thread.currentThread().getName() + " stole " + stolen);
+            System.out.println(
+                    stolen.isEmpty()
+                            ? NO_ITEMS_TO_STEAL_PHRASE + Thread.currentThread().getName()
+                            : Thread.currentThread().getName() + " stole " + stolen
+            );
             return stolen;
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

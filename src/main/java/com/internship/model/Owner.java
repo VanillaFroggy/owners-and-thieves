@@ -1,10 +1,12 @@
 package com.internship.model;
 
-import java.util.List;
+import java.util.Queue;
 
-public record Owner(Apartment apartment, List<Item> items) implements Runnable {
+public record Owner(Apartment apartment, Queue<Item> items) implements Runnable {
     @Override
     public void run() {
-        items.forEach(apartment::addItem);
+        while (!items.isEmpty()) {
+            apartment.addItem(items.poll());
+        }
     }
 }

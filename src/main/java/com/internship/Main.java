@@ -3,13 +3,11 @@ package com.internship;
 import com.internship.model.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class Main {
-    public static final int OWNERS_COUNT = 2;
-    public static final int THIEVES_COUNT = 2;
+    public static final int OWNERS_COUNT = 500;
+    public static final int THIEVES_COUNT = 500;
     public static final int MAX_ITEM_VALUE = 100_000;
     public static final int MAX_ITEM_WEIGHT = 10;
     public static final int MAX_ITEMS_COUNT = 10;
@@ -17,25 +15,14 @@ public class Main {
 
     public static void main(String[] args) {
         Apartment apartment = new Apartment();
-
-        List<Thread> owners = generateOwners(apartment, OWNERS_COUNT);
-
-        List<Thread> thieves = generateThieves(apartment, THIEVES_COUNT);
-
-        owners.forEach(owner -> {
-            owner.start();
-            try {
-                owner.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-        thieves.forEach(Thread::start);
+        List<Thread> threads = generateOwners(apartment, OWNERS_COUNT);
+        threads.addAll(generateThieves(apartment, THIEVES_COUNT));
+        Collections.shuffle(threads);
+        threads.forEach(Thread::start);
     }
 
     private static List<Thread> generateOwners(Apartment apartment, int count) {
-        List<List<Item>> itemLists = generateItems(count);
+        List<Queue<Item>> itemLists = generateItems(count);
         List<Thread> owners = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             owners.add(new Thread(
@@ -46,12 +33,12 @@ public class Main {
         return owners;
     }
 
-    private static List<List<Item>> generateItems(int count) {
-        List<List<Item>> itemLists = new ArrayList<>(count);
+    private static List<Queue<Item>> generateItems(int count) {
+        List<Queue<Item>> itemLists = new ArrayList<>(count);
         Random random = new Random();
         for (int i = 0; i < count; i++) {
             int itemsCount = random.nextInt(1, MAX_ITEMS_COUNT);
-            itemLists.add(new ArrayList<>(itemsCount));
+            itemLists.add(new LinkedList<>());
             for (int j = 0; j < itemsCount; j++) {
                 itemLists.get(i).add(new Item(
                         random.nextInt(1, MAX_ITEM_WEIGHT),
