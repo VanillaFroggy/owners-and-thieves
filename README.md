@@ -16,7 +16,7 @@ Every owner and every thief are separate threads, but there are few important co
 that means that inside the apartment may be only one thief at the same time,
 and owners can't come to apartment before thief leaves it.
 
-You can change some parameters to make your simulation more interesting and unique, here they are:
+You can change some parameters in Main class to make your simulation more interesting and unique, here they are:
 * `OWNERS_COUNT` - count of owners threads;
 * `THIEVES_COUNT` - count of thieves threads;
 * `MAX_ITEM_VALUE` - max value of generated items;
