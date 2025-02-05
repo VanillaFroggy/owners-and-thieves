@@ -1,4 +1,6 @@
 package com.internship.model;
 
-public record Backpack(int maxWeight) {
+import java.util.List;
+
+public record Backpack(int maxWeight, List<Item> items) {
 }

@@ -16,6 +16,10 @@ public class Apartment {
     private int ownersInside = 0;
     private boolean thiefInside = false;
 
+    public List<Item> getItems() {
+        return items;
+    }
+
     public void addItem(Item item) {
         lock.lock();
         try {

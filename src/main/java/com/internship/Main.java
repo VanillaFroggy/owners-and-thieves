@@ -15,20 +15,51 @@ public class Main {
 
     public static void main(String[] args) {
         Apartment apartment = new Apartment();
-        List<Thread> threads = generateOwners(apartment, OWNERS_COUNT);
-        threads.addAll(generateThieves(apartment, THIEVES_COUNT));
+        List<Owner> owners = generateOwners(apartment, OWNERS_COUNT);
+        List<Item> generatedItems = owners.stream()
+                .flatMap(owner -> owner.items().stream())
+                .toList();
+        List<Thread> threads = new ArrayList<>(
+                owners.stream()
+                        .map(Thread::new)
+                        .toList()
+        );
+        List<Thief> thieves = generateThieves(apartment, THIEVES_COUNT);
+        threads.addAll(
+                thieves.stream()
+                        .map(Thread::new)
+                        .toList()
+        );
         Collections.shuffle(threads);
-        threads.forEach(Thread::start);
+        threads.forEach(thread -> {
+            thread.start();
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        List<Item> resultedItems = new ArrayList<>(apartment.getItems());
+        resultedItems.addAll(
+                thieves.stream()
+                        .flatMap(thief ->
+                                thief.backpack()
+                                        .items()
+                                        .stream()
+                        )
+                        .toList()
+        );
+        System.out.println(
+                generatedItems.size() == resultedItems.size()
+                        && resultedItems.containsAll(generatedItems)
+        );
     }
 
-    private static List<Thread> generateOwners(Apartment apartment, int count) {
+    private static List<Owner> generateOwners(Apartment apartment, int count) {
         List<Queue<Item>> itemLists = generateItems(count);
-        List<Thread> owners = new ArrayList<>(count);
+        List<Owner> owners = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            owners.add(new Thread(
-                    new Owner(apartment, itemLists.get(i)),
-                    "Owner" + (i + 1))
-            );
+            owners.add(new Owner(apartment, itemLists.get(i)));
         }
         return owners;
     }
@@ -49,16 +80,13 @@ public class Main {
         return itemLists;
     }
 
-    private static List<Thread> generateThieves(Apartment apartment, int count) {
-        List<Thread> thieves = new ArrayList<>(count);
+    private static List<Thief> generateThieves(Apartment apartment, int count) {
+        List<Thief> thieves = new ArrayList<>(count);
         Random random = new Random();
         for (int i = 0; i < count; i++) {
-            thieves.add(new Thread(
-                    new Thief(
-                            apartment,
-                            new Backpack(random.nextInt(1, MAX_BACKPACK_WEIGHT))
-                    ),
-                    "Thief" + (i + 1)
+            thieves.add(new Thief(
+                    apartment,
+                    new Backpack(random.nextInt(1, MAX_BACKPACK_WEIGHT), new ArrayList<>())
             ));
         }
         return thieves;
