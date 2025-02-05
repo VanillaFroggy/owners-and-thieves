@@ -4,6 +4,9 @@ import com.internship.model.*;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Main {
     public static final int OWNERS_COUNT = 500;
@@ -19,19 +22,17 @@ public class Main {
         List<Item> generatedItems = owners.stream()
                 .flatMap(owner -> owner.items().stream())
                 .toList();
-        List<Thread> threads = new ArrayList<>(
-                owners.stream()
-                        .map(Thread::new)
-                        .toList()
-        );
         List<Thief> thieves = generateThieves(apartment, THIEVES_COUNT);
-        threads.addAll(
-                thieves.stream()
-                        .map(Thread::new)
-                        .toList()
-        );
-        Collections.shuffle(threads);
-        threads.forEach(Thread::start);
+        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Runnable> runnables = new ArrayList<>(owners);
+            runnables.addAll(thieves);
+            Collections.shuffle(runnables);
+            List<CompletableFuture<Void>> futures = runnables.stream()
+                    .map(runnable -> CompletableFuture.runAsync(runnable, executorService))
+                    .toList();
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+            executorService.shutdown();
+        }
         List<Item> resultedItems = new ArrayList<>(apartment.getItems());
         resultedItems.addAll(
                 thieves.stream()
@@ -44,7 +45,7 @@ public class Main {
         );
         System.out.println(
                 generatedItems.size() == resultedItems.size()
-                        && resultedItems.containsAll(generatedItems)
+                        && new HashSet<>(resultedItems).containsAll(generatedItems)
         );
     }
 
