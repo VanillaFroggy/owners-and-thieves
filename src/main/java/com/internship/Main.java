@@ -31,14 +31,7 @@ public class Main {
                         .toList()
         );
         Collections.shuffle(threads);
-        threads.forEach(thread -> {
-            thread.start();
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        threads.forEach(Thread::start);
         List<Item> resultedItems = new ArrayList<>(apartment.getItems());
         resultedItems.addAll(
                 thieves.stream()
