@@ -12,7 +12,7 @@ public class Apartment {
     private static final String NO_ITEMS_TO_STEAL_PHRASE = "Here is nothing to steal for ";
     private final List<Item> items = new CopyOnWriteArrayList<>();
     private final Lock lock = new ReentrantLock();
-    private final Condition canSteal = lock.newCondition();
+    private final Condition canComeIn = lock.newCondition();
     private int ownersInside = 0;
     private boolean thiefInside = false;
 
@@ -24,7 +24,7 @@ public class Apartment {
         lock.lock();
         try {
             while (thiefInside) {
-                canSteal.await();
+                canComeIn.await();
             }
             ownersInside++;
         } catch (InterruptedException e) {
@@ -40,7 +40,7 @@ public class Apartment {
         try {
             ownersInside--;
             if (ownersInside == 0) {
-                canSteal.signalAll();
+                canComeIn.signalAll();
             }
         } finally {
             lock.unlock();
@@ -51,12 +51,12 @@ public class Apartment {
         lock.lock();
         try {
             while (ownersInside > 0 || thiefInside) {
-                canSteal.await();
+                canComeIn.await();
             }
             thiefInside = true;
             if (items.isEmpty()) {
                 thiefInside = false;
-                canSteal.signalAll();
+                canComeIn.signalAll();
                 System.out.println(NO_ITEMS_TO_STEAL_PHRASE + Thread.currentThread().getName());
                 return Collections.emptyList();
             }
@@ -90,7 +90,7 @@ public class Apartment {
         lock.lock();
         try {
             thiefInside = false;
-            canSteal.signalAll();
+            canComeIn.signalAll();
         } finally {
             lock.unlock();
         }
